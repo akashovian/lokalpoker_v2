@@ -302,6 +302,12 @@
     .new-btn:hover {
       background-color: #e0a800;
     }
+    .undo-btn {
+      background-color: #6c757d;
+    }
+    .undo-btn:hover {
+      background-color: #5a6268;
+    }
     .leaderboard-select {
       width: 100%;
       padding: 10px;
@@ -325,6 +331,29 @@
     .dark-mode .leaderboard-info {
       background-color: #2a4365;
       border-color: #63b3ed;
+    }
+    .leaderboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    .leaderboard-name-input {
+      flex: 1;
+      min-width: 200px;
+      margin-right: 10px;
+    }
+    .leaderboard-name-input input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .dark-mode .leaderboard-name-input input {
+      background-color: #555;
+      border-color: #666;
+      color: #f4f4f9;
     }
     /* Mobile-specific styles */
     @media (max-width: 768px) {
@@ -354,6 +383,15 @@
       .leaderboard-actions button {
         width: 100%;
       }
+      .leaderboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .leaderboard-name-input {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+      }
     }
   </style>
 </head>
@@ -361,6 +399,18 @@
   <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
   <div class="container">
     <h1>Lokal Seenz Poker Payouts</h1>
+    
+    <!-- Leaderboard Selection at the Top -->
+    <div class="leaderboard-header">
+      <div class="leaderboard-name-input">
+        <label for="currentLeaderboardNameInput">Current Leaderboard:</label>
+        <input type="text" id="currentLeaderboardNameInput" placeholder="Enter leaderboard name">
+      </div>
+      <div>
+        <button class="load-btn" onclick="showLoadLeaderboardOptions()">Change Leaderboard</button>
+      </div>
+    </div>
+    
     <div id="inputFields">
       <div class="input-group">
         <label for="numPlayers">Number of Players:</label>
@@ -434,19 +484,23 @@
         <h2>Leaderboard</h2>
         <div class="leaderboard-info" id="leaderboardInfo">
           Current leaderboard: <span id="currentLeaderboardName">New Leaderboard</span>
+          | Created: <span id="leaderboardCreated">Never</span>
           | Last Updated: <span id="leaderboardLastUpdated">Never</span>
         </div>
         
         <div class="leaderboard-actions">
           <button class="save-btn" onclick="saveToLeaderboard()">Save to Leaderboard</button>
+          <button class="undo-btn" onclick="undoLastSave()">Undo Last Save</button>
           <button class="clear-btn" onclick="clearLeaderboard()">Clear Leaderboard</button>
-          <button class="load-btn" onclick="showLoadLeaderboardOptions()">Load Leaderboard</button>
           <button class="new-btn" onclick="startNewLeaderboard()">Start New Leaderboard</button>
         </div>
         
         <div id="loadLeaderboardOptions" class="hidden">
           <select class="leaderboard-select" id="leaderboardSelect"></select>
-          <button class="load-btn" onclick="loadLeaderboard()">Load Selected Leaderboard</button>
+          <div style="display: flex; gap: 10px;">
+            <button class="load-btn" onclick="loadLeaderboard()">Load Selected Leaderboard</button>
+            <button class="clear-btn" onclick="hideLoadOptions()">Cancel</button>
+          </div>
         </div>
         
         <div class="scrollable-container">
@@ -498,11 +552,12 @@
       name: "New Leaderboard",
       players: {},
       lastUpdated: null,
-      created: new Date().toISOString()
+      created: new Date().toISOString(),
+      history: [] // For undo functionality
     };
     
     let leaderboardFiles = [];
-    const MAX_LEADERBOARD_FILES = 5;
+    const MAX_LEADERBOARD_FILES = 10;
     
     // Initialize the leaderboard
     function initializeLeaderboard() {
@@ -510,19 +565,29 @@
         name: "New Leaderboard",
         players: {},
         lastUpdated: null,
-        created: new Date().toISOString()
+        created: new Date().toISOString(),
+        history: []
       };
       updateLeaderboardInfo();
       displayLeaderboard();
-      showInfo("New leaderboard started!");
+      updateLeaderboardNameInput();
     }
     
     // Update leaderboard info display
     function updateLeaderboardInfo() {
       document.getElementById("currentLeaderboardName").textContent = currentLeaderboard.name;
+      const created = currentLeaderboard.created ? 
+        new Date(currentLeaderboard.created).toLocaleString() : "Never";
+      document.getElementById("leaderboardCreated").textContent = created;
+      
       const lastUpdated = currentLeaderboard.lastUpdated ? 
         new Date(currentLeaderboard.lastUpdated).toLocaleString() : "Never";
       document.getElementById("leaderboardLastUpdated").textContent = lastUpdated;
+    }
+    
+    // Update the leaderboard name input field
+    function updateLeaderboardNameInput() {
+      document.getElementById("currentLeaderboardNameInput").value = currentLeaderboard.name;
     }
     
     // Display the leaderboard
@@ -572,6 +637,26 @@
         return;
       }
       
+      // Validate leaderboard name
+      const newName = document.getElementById("currentLeaderboardNameInput").value.trim();
+      if (!newName) {
+        showError("Please enter a name for the leaderboard.");
+        return;
+      }
+      
+      // Save current state for undo functionality
+      currentLeaderboard.history.push(JSON.parse(JSON.stringify(currentLeaderboard.players)));
+      
+      // Keep only last 10 history entries
+      if (currentLeaderboard.history.length > 10) {
+        currentLeaderboard.history.shift();
+      }
+      
+      // Update leaderboard name if changed
+      if (newName !== currentLeaderboard.name) {
+        currentLeaderboard.name = newName;
+      }
+      
       // Update leaderboard with current game results
       playersData.forEach(player => {
         const netGainLoss = player.finalBalance - player.buyIn;
@@ -605,6 +690,31 @@
       showInfo(`Game results saved to "${currentLeaderboard.name}" successfully!`);
     }
     
+    // Undo the last save to leaderboard
+    function undoLastSave() {
+      if (currentLeaderboard.history.length === 0) {
+        showError("No previous state to undo.");
+        return;
+      }
+      
+      if (confirm("Are you sure you want to undo the last save? This will revert the leaderboard to its previous state.")) {
+        // Restore previous state
+        currentLeaderboard.players = currentLeaderboard.history.pop();
+        
+        // Update timestamp
+        currentLeaderboard.lastUpdated = new Date().toISOString();
+        
+        // Save to file
+        saveLeaderboardToFile();
+        
+        // Update display
+        updateLeaderboardInfo();
+        displayLeaderboard();
+        
+        showInfo("Last save undone successfully!");
+      }
+    }
+    
     // Save leaderboard to file
     function saveLeaderboardToFile() {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -629,12 +739,15 @@
         if (key && key.startsWith("leaderboard_")) {
           try {
             const data = JSON.parse(localStorage.getItem(key));
-            leaderboardFiles.push({
-              fileName: key,
-              name: data.name || "Unnamed Leaderboard",
-              timestamp: data.lastUpdated || data.created,
-              created: data.created
-            });
+            // Only include leaderboards with valid names
+            if (data.name && data.name.trim() !== "") {
+              leaderboardFiles.push({
+                fileName: key,
+                name: data.name,
+                timestamp: data.lastUpdated || data.created,
+                created: data.created
+              });
+            }
           } catch (e) {
             console.error("Error parsing leaderboard data:", e);
           }
@@ -685,6 +798,11 @@
       document.getElementById("loadLeaderboardOptions").classList.remove("hidden");
     }
     
+    // Hide load leaderboard options
+    function hideLoadOptions() {
+      document.getElementById("loadLeaderboardOptions").classList.add("hidden");
+    }
+    
     // Load a leaderboard from file
     function loadLeaderboard() {
       const selectedFile = document.getElementById("leaderboardSelect").value;
@@ -697,9 +815,10 @@
       try {
         const leaderboardData = JSON.parse(localStorage.getItem(selectedFile));
         
-        if (leaderboardData && leaderboardData.players) {
+        if (leaderboardData && leaderboardData.players && leaderboardData.name) {
           currentLeaderboard = leaderboardData;
           updateLeaderboardInfo();
+          updateLeaderboardNameInput();
           displayLeaderboard();
           document.getElementById("loadLeaderboardOptions").classList.add("hidden");
           showInfo(`Leaderboard "${currentLeaderboard.name}" loaded successfully!`);
@@ -732,13 +851,14 @@
         localStorage.setItem(backupFileName, JSON.stringify(backupData));
         updateLeaderboardFiles();
         
-        // Clear the leaderboard but keep the name
+        // Clear the leaderboard but keep the name and history
         const leaderboardName = currentLeaderboard.name;
         currentLeaderboard = {
           name: leaderboardName,
           players: {},
-          lastUpdated: null,
-          created: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          created: currentLeaderboard.created,
+          history: []
         };
         
         updateLeaderboardInfo();
@@ -750,26 +870,32 @@
     
     // Start a new leaderboard
     function startNewLeaderboard() {
+      const newName = prompt("Enter a name for the new leaderboard:");
+      
+      if (!newName || newName.trim() === "") {
+        showError("Leaderboard name cannot be empty.");
+        return;
+      }
+      
       if (Object.keys(currentLeaderboard.players).length > 0) {
         if (!confirm("Starting a new leaderboard will clear all current progress. Continue?")) {
           return;
         }
       }
       
-      // Create a new leaderboard with a timestamp-based name
-      const now = new Date();
-      const leaderboardName = `Leaderboard ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-      
+      // Create a new leaderboard with the user-provided name
       currentLeaderboard = {
-        name: leaderboardName,
+        name: newName.trim(),
         players: {},
         lastUpdated: null,
-        created: new Date().toISOString()
+        created: new Date().toISOString(),
+        history: []
       };
       
       updateLeaderboardInfo();
+      updateLeaderboardNameInput();
       displayLeaderboard();
-      showInfo(`New leaderboard "${leaderboardName}" started.`);
+      showInfo(`New leaderboard "${newName}" started.`);
     }
     
     // Show error message
@@ -806,9 +932,29 @@
     function initializePage() {
       generatePlayerInputs();
       initializeLeaderboard();
+      
+      // Try to load the most recent leaderboard if available
+      updateLeaderboardFiles();
+      if (leaderboardFiles.length > 0) {
+        const mostRecentFile = leaderboardFiles[0];
+        try {
+          const leaderboardData = JSON.parse(localStorage.getItem(mostRecentFile.fileName));
+          if (leaderboardData) {
+            currentLeaderboard = leaderboardData;
+            updateLeaderboardInfo();
+            updateLeaderboardNameInput();
+            displayLeaderboard();
+            showInfo(`Automatically loaded latest leaderboard: "${currentLeaderboard.name}"`);
+          }
+        } catch (e) {
+          console.error("Error loading latest leaderboard:", e);
+        }
+      }
     }
     
-    // Generate player input fields
+    // Rest of the functions (generatePlayerInputs, calculateSettlements, etc.)
+    // ... (all the existing functions remain the same)
+
     function generatePlayerInputs() {
       const numPlayers = document.getElementById("numPlayers").value;
       const playerInputs = document.getElementById("playerInputs");
@@ -832,7 +978,6 @@
       }
     }
 
-    // Calculate settlements
     function calculateSettlements() {
       const numPlayers = document.getElementById("numPlayers").value;
       playersData = [];
@@ -891,7 +1036,6 @@
       }
     }
     
-    // Populate player selection dropdowns
     function populatePlayerSelection() {
       const singlePlayerSelect = document.getElementById("singlePlayerSelect");
       const multiplePlayersCheckboxes = document.getElementById("multiplePlayersCheckboxes");
@@ -932,7 +1076,6 @@
       document.getElementById('multiplePlayersOption').classList.add('hidden');
     });
     
-    // Apply adjustment and calculate
     function applyAdjustment() {
       const adjustmentOption = document.querySelector('input[name="adjustmentOption"]:checked').value;
       adjustmentMethod = adjustmentOption;
@@ -978,7 +1121,6 @@
       calculateWithAdjustments();
     }
     
-    // Calculate with adjustments
     function calculateWithAdjustments() {
       // Hide adjustment section
       document.getElementById("adjustmentSection").classList.add("hidden");
@@ -1046,7 +1188,6 @@
       resultsDiv.style.display = "block";
     }
     
-    // Display player summary
     function displayPlayerSummary() {
       const tableBody = document.getElementById("playerSummaryBody");
       const tableFoot = document.getElementById("playerSummaryFoot");
@@ -1173,7 +1314,6 @@
       }
     }
     
-    // Export PDF
     function exportPDF() {
       // Show loading indicator
       const originalText = document.querySelector('.export-btn').textContent;
@@ -1333,7 +1473,6 @@
       document.querySelector('.export-btn').textContent = originalText;
     }
 
-    // Toggle dark mode
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
       const button = document.querySelector(".dark-mode-toggle");
