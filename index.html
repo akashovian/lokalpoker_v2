@@ -603,6 +603,30 @@
       }
       return files;
     }
+
+    // Case-insensitive comparison
+    function namesAreEqual(name1, name2) {
+      return name1.toLowerCase().trim() === name2.toLowerCase().trim();
+    }
+
+    // Find existing leaderboard with same name (case insensitive)
+    function findLeaderboardByName(name) {
+      return leaderboardFiles.find(file => namesAreEqual(file.name, name));
+    }
+
+    // Delete all leaderboards with the same name (case insensitive)
+    function deleteLeaderboardsWithSameName(name) {
+      const filesToDelete = leaderboardFiles.filter(file => namesAreEqual(file.name, name));
+      
+      filesToDelete.forEach(file => {
+        deleteLeaderboardData(file.fileName);
+      });
+      
+      // Remove from leaderboardFiles array
+      leaderboardFiles = leaderboardFiles.filter(file => !namesAreEqual(file.name, name));
+      
+      return filesToDelete.length;
+    }
     
     // Initialize the leaderboard
     function initializeLeaderboard() {
@@ -697,8 +721,17 @@
         currentLeaderboard.history.shift();
       }
       
+      // Check if name changed (case insensitive)
+      const nameChanged = !namesAreEqual(newName, currentLeaderboard.name);
+      
       // Update leaderboard name if changed
-      if (newName !== currentLeaderboard.name) {
+      if (nameChanged) {
+        // Delete all previous leaderboards with the same name (case insensitive)
+        const deletedCount = deleteLeaderboardsWithSameName(newName);
+        if (deletedCount > 0) {
+          console.log(`Deleted ${deletedCount} previous leaderboards with name: ${newName}`);
+        }
+        
         currentLeaderboard.name = newName;
       }
       
@@ -732,7 +765,11 @@
       displayLeaderboard();
       
       // Show success message
-      showInfo(`Game results saved to "${currentLeaderboard.name}" successfully!`);
+      let message = `Game results saved to "${currentLeaderboard.name}" successfully!`;
+      if (nameChanged) {
+        message += " Previous versions with same name have been deleted.";
+      }
+      showInfo(message);
     }
     
     // Undo the last save to leaderboard
@@ -799,7 +836,22 @@
       // Sort by timestamp (newest first)
       leaderboardFiles.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       
-      // Keep only the most recent files
+      // Keep only the most recent files (by name, not by file count)
+      // We'll keep only the latest version of each unique name (case insensitive)
+      const uniqueLeaderboards = [];
+      const seenNames = new Set();
+      
+      leaderboardFiles.forEach(file => {
+        const normalizedName = file.name.toLowerCase().trim();
+        if (!seenNames.has(normalizedName)) {
+          seenNames.add(normalizedName);
+          uniqueLeaderboards.push(file);
+        }
+      });
+      
+      leaderboardFiles = uniqueLeaderboards;
+      
+      // If we still have too many files, remove the oldest ones
       if (leaderboardFiles.length > MAX_LEADERBOARD_FILES) {
         const filesToDelete = leaderboardFiles.slice(MAX_LEADERBOARD_FILES);
         
@@ -924,6 +976,30 @@
       if (!newName || newName.trim() === "") {
         showError("Leaderboard name cannot be empty.");
         return;
+      }
+      
+      // Check if a leaderboard with this name already exists (case insensitive)
+      const existingLeaderboard = findLeaderboardByName(newName);
+      if (existingLeaderboard) {
+        if (!confirm(`A leaderboard named "${existingLeaderboard.name}" already exists. Do you want to load it instead?`)) {
+          return;
+        }
+        
+        // Load the existing leaderboard
+        try {
+          const leaderboardData = getLeaderboardData(existingLeaderboard.fileName);
+          if (leaderboardData) {
+            const parsedData = JSON.parse(leaderboardData);
+            currentLeaderboard = parsedData;
+            updateLeaderboardInfo();
+            updateLeaderboardNameInput();
+            displayLeaderboard();
+            showInfo(`Loaded existing leaderboard: "${currentLeaderboard.name}"`);
+            return;
+          }
+        } catch (e) {
+          console.error("Error loading existing leaderboard:", e);
+        }
       }
       
       if (Object.keys(currentLeaderboard.players).length > 0) {
