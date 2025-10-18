@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lokal Seenz Poker Payouts</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    /* Light Mode Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f9;
+      color: #333;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 5px;
+      font-size: 24px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    .input-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .results {
+      margin-top: 20px;
+    }
+    .results h2 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 20px;
+    }
+    .results ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    .results li {
+      background-color: #f8f9fa;
+      padding: 10px;
+      margin-bottom: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .error {
+      color: #dc3545;
+      font-weight: bold;
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f8d7da;
+      border-radius: 5px;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      color: #0c5460;
+      background-color: #d1ecf1;
+      border: 1px solid #bee5eb;
+      border-radius: 5px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .dark-mode {
+      background-color: #333;
+      color: #f4f4f9;
+    }
+    .dark-mode .container {
+      background-color: #444;
+      color: #f4f4f9;
+    }
+    .dark-mode h1,
+    .dark-mode .results h2 {
+      color: #f4f4f9;
+    }
+    .dark-mode .results li {
+      background-color: #555;
+      border-color: #666;
+      color: #f4f4f9;
+    }
+    .dark-mode button {
+      background-color: #555;
+    }
+    .dark-mode button:hover {
+      background-color: #666;
+    }
+    .dark-mode .input-group input,
+    .dark-mode .input-group select {
+      background-color: #555;
+      border-color: #666;
+      color: #f4f4f9;
+    }
+    .dark-mode-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #666;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .dark-mode th {
+      background-color: #555;
+    }
+    .adjustment-options {
+      margin: 15px 0;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+      border: 1px solid #eee;
+    }
+    .dark-mode .adjustment-options {
+      background-color: #3a3a3a;
+      border-color: #555;
+    }
+    .adjustment-options h3 {
+      margin-top: 0;
+    }
+    .radio-group {
+      margin-bottom: 10px;
+    }
+    .radio-group label {
+      margin-left: 5px;
+    }
+    .hidden {
+      display: none;
+    }
+    .positive {
+      color: #28a745;
+    }
+    .negative {
+      color: #dc3545;
+    }
+    .summary-table {
+      overflow-x: auto;
+      width: 100%;
+    }
+    .total-row {
+      font-weight: bold;
+      background-color: #e9ecef;
+    }
+    .dark-mode .total-row {
+      background-color: #4a4a4a;
+    }
+    .action-info {
+      margin: 15px 0;
+      padding: 15px;
+      background-color: #e7f3ff;
+      border-radius: 5px;
+      border-left: 4px solid #0066cc;
+    }
+    .dark-mode .action-info {
+      background-color: #2a4365;
+      border-left-color: #63b3ed;
+    }
+    .export-btn {
+      background-color: #0066cc;
+    }
+    .export-btn:hover {
+      background-color: #0055aa;
+    }
+    .scrollable-container {
+      max-height: 70vh;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    /* Leaderboard Styles */
+    .leaderboard-section {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 10px;
+      border: 1px solid #eee;
+    }
+    .dark-mode .leaderboard-section {
+      background-color: #3a3a3a;
+      border-color: #555;
+    }
+    .leaderboard-section h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .dark-mode .leaderboard-section h2 {
+      color: #f4f4f9;
+    }
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .leaderboard-table th {
+      background-color: #e9ecef;
+      font-weight: bold;
+    }
+    .dark-mode .leaderboard-table th {
+      background-color: #555;
+    }
+    .leaderboard-table tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    .dark-mode .leaderboard-table tr:nth-child(even) {
+      background-color: #4a4a4a;
+    }
+    .leaderboard-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    .leaderboard-actions button {
+      margin-top: 0;
+    }
+    .save-btn {
+      background-color: #28a745;
+    }
+    .save-btn:hover {
+      background-color: #218838;
+    }
+    .clear-btn {
+      background-color: #dc3545;
+    }
+    .clear-btn:hover {
+      background-color: #c82333;
+    }
+    .load-btn {
+      background-color: #17a2b8;
+    }
+    .load-btn:hover {
+      background-color: #138496;
+    }
+    .new-btn {
+      background-color: #ffc107;
+      color: #212529;
+    }
+    .new-btn:hover {
+      background-color: #e0a800;
+    }
+    .leaderboard-select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: white;
+    }
+    .dark-mode .leaderboard-select {
+      background-color: #555;
+      border-color: #666;
+      color: #f4f4f9;
+    }
+    .leaderboard-info {
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #d1ecf1;
+      border-radius: 5px;
+      border: 1px solid #bee5eb;
+    }
+    .dark-mode .leaderboard-info {
+      background-color: #2a4365;
+      border-color: #63b3ed;
+    }
+    /* Mobile-specific styles */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      .container {
+        padding: 15px;
+      }
+      h1 {
+        font-size: 22px;
+      }
+      table {
+        font-size: 12px;
+      }
+      th, td {
+        padding: 8px 5px;
+      }
+      .dark-mode-toggle {
+        top: 10px;
+        right: 10px;
+        padding: 8px;
+      }
+      .leaderboard-actions {
+        flex-direction: column;
+      }
+      .leaderboard-actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+  <div class="container">
+    <h1>Lokal Seenz Poker Payouts</h1>
+    <div id="inputFields">
+      <div class="input-group">
+        <label for="numPlayers">Number of Players:</label>
+        <input type="number" id="numPlayers" min="2" value="2">
+      </div>
+      <button onclick="generatePlayerInputs()">Generate Player Inputs</button>
+    </div>
+    <div id="playerInputs" style="margin-top: 20px;"></div>
+    <button onclick="calculateSettlements()" style="margin-top: 20px;">Calculate Settlements</button>
+    
+    <div id="adjustmentSection" class="hidden">
+      <div class="info" id="differenceInfo"></div>
+      
+      <div class="adjustment-options">
+        <h3>Adjust Difference By:</h3>
+        <div class="radio-group">
+          <input type="radio" id="adjustAll" name="adjustmentOption" value="all" checked>
+          <label for="adjustAll">Adjust difference across all players (evenly distributed)</label>
+        </div>
+        
+        <div class="radio-group">
+          <input type="radio" id="adjustSingle" name="adjustmentOption" value="single">
+          <label for="adjustSingle">Adjust difference to a single player</label>
+          <div id="singlePlayerOption" class="hidden" style="margin-top: 10px;">
+            <select id="singlePlayerSelect"></select>
+          </div>
+        </div>
+        
+        <div class="radio-group">
+          <input type="radio" id="adjustMultiple" name="adjustmentOption" value="multiple">
+          <label for="adjustMultiple">Adjust difference to multiple players (evenly distributed)</label>
+          <div id="multiplePlayersOption" class="hidden" style="margin-top: 10px;">
+            <div id="multiplePlayersCheckboxes"></div>
+          </div>
+        </div>
+        
+        <button onclick="applyAdjustment()">Apply Adjustment and Calculate</button>
+      </div>
+    </div>
+    
+    <div class="results" id="results" style="display: none;">
+      <h2>Player Summary:</h2>
+      <div class="scrollable-container">
+        <div class="summary-table">
+          <table id="playerSummaryTable">
+            <thead>
+              <tr>
+                <th>Player Name</th>
+                <th>Buy-In</th>
+                <th>Balance</th>
+                <th>Adjustment</th>
+                <th>Final Balance</th>
+                <th>Net Gain/Loss</th>
+              </tr>
+            </thead>
+            <tbody id="playerSummaryBody"></tbody>
+            <tfoot id="playerSummaryFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+      
+      <div class="action-info" id="actionInfo"></div>
+      
+      <button class="export-btn" onclick="exportPDF()">Export as PDF</button>
+      
+      <h2>Settlements:</h2>
+      <ul id="settlementList"></ul>
+      
+      <!-- Leaderboard Section -->
+      <div class="leaderboard-section">
+        <h2>Leaderboard</h2>
+        <div class="leaderboard-info" id="leaderboardInfo">
+          Current leaderboard: <span id="currentLeaderboardName">New Leaderboard</span>
+        </div>
+        
+        <div class="leaderboard-actions">
+          <button class="save-btn" onclick="saveToLeaderboard()">Save to Leaderboard</button>
+          <button class="clear-btn" onclick="clearLeaderboard()">Clear Leaderboard</button>
+          <button class="load-btn" onclick="showLoadLeaderboardOptions()">Load Leaderboard</button>
+          <button class="new-btn" onclick="startNewLeaderboard()">Start New Leaderboard</button>
+        </div>
+        
+        <div id="loadLeaderboardOptions" class="hidden">
+          <select class="leaderboard-select" id="leaderboardSelect"></select>
+          <button class="load-btn" onclick="loadLeaderboard()">Load Selected Leaderboard</button>
+        </div>
+        
+        <div class="scrollable-container">
+          <table class="leaderboard-table" id="leaderboardTable">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player Name</th>
+                <th>Total Winnings</th>
+                <th>Games Played</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="error" id="errorMessage" style="display: none;"></div>
+  </div>
+  <div class="footer">
+    Developed by Akash Justin Ovian, Copyright © 2025. All Rights Reserved.
+  </div>
+
+  <script>
+    // Initialize jsPDF
+    window.jsPDF = window.jspdf.jsPDF;
+    
+    let playersData = [];
+    let difference = 0;
+    let adjustmentMethod = "";
+    let selectedPlayersForAdjustment = [];
+    
+    // Leaderboard variables
+    let currentLeaderboard = {};
+    let currentLeaderboardName = "New Leaderboard";
+    let leaderboardFiles = [];
+    
+    // Initialize the leaderboard
+    function initializeLeaderboard() {
+      currentLeaderboard = {};
+      currentLeaderboardName = "New Leaderboard";
+      updateLeaderboardInfo();
+      displayLeaderboard();
+    }
+    
+    // Update leaderboard info display
+    function updateLeaderboardInfo() {
+      document.getElementById("currentLeaderboardName").textContent = currentLeaderboardName;
+    }
+    
+    // Display the leaderboard
+    function displayLeaderboard() {
+      const leaderboardBody = document.getElementById("leaderboardBody");
+      leaderboardBody.innerHTML = "";
+      
+      // Convert leaderboard object to array and sort by winnings (descending)
+      const leaderboardArray = Object.entries(currentLeaderboard)
+        .map(([name, data]) => ({
+          name,
+          winnings: data.winnings || 0,
+          gamesPlayed: data.gamesPlayed || 0
+        }))
+        .sort((a, b) => b.winnings - a.winnings);
+      
+      // Add rows to the leaderboard table
+      leaderboardArray.forEach((player, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${player.name}</td>
+          <td class="${player.winnings >= 0 ? 'positive' : 'negative'}">${player.winnings >= 0 ? '+' : ''}${Math.round(player.winnings)}</td>
+          <td>${player.gamesPlayed}</td>
+        `;
+        leaderboardBody.appendChild(row);
+      });
+      
+      // If leaderboard is empty, show a message
+      if (leaderboardArray.length === 0) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td colspan="4" style="text-align: center;">No data in leaderboard</td>`;
+        leaderboardBody.appendChild(row);
+      }
+    }
+    
+    // Save current game results to leaderboard
+    function saveToLeaderboard() {
+      if (playersData.length === 0) {
+        showError("No game data to save. Please calculate settlements first.");
+        return;
+      }
+      
+      // Update leaderboard with current game results
+      playersData.forEach(player => {
+        const netGainLoss = player.finalBalance - player.buyIn;
+        const playerName = player.name;
+        
+        if (!currentLeaderboard[playerName]) {
+          currentLeaderboard[playerName] = {
+            winnings: 0,
+            gamesPlayed: 0
+          };
+        }
+        
+        currentLeaderboard[playerName].winnings += netGainLoss;
+        currentLeaderboard[playerName].gamesPlayed += 1;
+      });
+      
+      // Save to file
+      saveLeaderboardToFile();
+      
+      // Update display
+      displayLeaderboard();
+      
+      // Show success message
+      showInfo("Game results saved to leaderboard successfully!");
+    }
+    
+    // Save leaderboard to file
+    function saveLeaderboardToFile() {
+      // In a real implementation, this would send data to a server
+      // For this demo, we'll simulate saving to localStorage
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `leaderboard_${timestamp}.json`;
+      
+      // Create leaderboard data object
+      const leaderboardData = {
+        name: currentLeaderboardName,
+        data: currentLeaderboard,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Save to localStorage (simulating server storage)
+      localStorage.setItem(fileName, JSON.stringify(leaderboardData));
+      
+      // Update leaderboard files list
+      updateLeaderboardFiles();
+      
+      return fileName;
+    }
+    
+    // Update the list of available leaderboard files
+    function updateLeaderboardFiles() {
+      leaderboardFiles = [];
+      
+      // Get all keys from localStorage that start with "leaderboard_"
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("leaderboard_")) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key));
+            leaderboardFiles.push({
+              fileName: key,
+              name: data.name || "Unnamed Leaderboard",
+              timestamp: data.timestamp
+            });
+          } catch (e) {
+            console.error("Error parsing leaderboard data:", e);
+          }
+        }
+      }
+      
+      // Sort by timestamp (newest first)
+      leaderboardFiles.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      // Keep only the 5 most recent files
+      if (leaderboardFiles.length > 5) {
+        const filesToDelete = leaderboardFiles.slice(5);
+        filesToDelete.forEach(file => {
+          localStorage.removeItem(file.fileName);
+        });
+        leaderboardFiles = leaderboardFiles.slice(0, 5);
+        
+        // Show warning about deleted files
+        showInfo(`Warning: Older leaderboard files have been deleted to maintain the 5-file limit.`);
+      }
+    }
+    
+    // Show load leaderboard options
+    function showLoadLeaderboardOptions() {
+      updateLeaderboardFiles();
+      
+      const leaderboardSelect = document.getElementById("leaderboardSelect");
+      leaderboardSelect.innerHTML = "";
+      
+      if (leaderboardFiles.length === 0) {
+        leaderboardSelect.innerHTML = '<option value="">No saved leaderboards found</option>';
+      } else {
+        leaderboardFiles.forEach(file => {
+          const option = document.createElement("option");
+          option.value = file.fileName;
+          option.textContent = `${file.name} (${new Date(file.timestamp).toLocaleString()})`;
+          leaderboardSelect.appendChild(option);
+        });
+      }
+      
+      document.getElementById("loadLeaderboardOptions").classList.remove("hidden");
+    }
+    
+    // Load a leaderboard from file
+    function loadLeaderboard() {
+      const selectedFile = document.getElementById("leaderboardSelect").value;
+      
+      if (!selectedFile) {
+        showError("Please select a leaderboard to load.");
+        return;
+      }
+      
+      try {
+        const leaderboardData = JSON.parse(localStorage.getItem(selectedFile));
+        
+        if (leaderboardData && leaderboardData.data) {
+          currentLeaderboard = leaderboardData.data;
+          currentLeaderboardName = leaderboardData.name || "Loaded Leaderboard";
+          updateLeaderboardInfo();
+          displayLeaderboard();
+          document.getElementById("loadLeaderboardOptions").classList.add("hidden");
+          showInfo("Leaderboard loaded successfully!");
+        } else {
+          showError("Invalid leaderboard data.");
+        }
+      } catch (e) {
+        showError("Error loading leaderboard: " + e.message);
+      }
+    }
+    
+    // Clear the current leaderboard
+    function clearLeaderboard() {
+      if (Object.keys(currentLeaderboard).length === 0) {
+        showInfo("Leaderboard is already empty.");
+        return;
+      }
+      
+      if (confirm("Are you sure you want to clear the leaderboard? This action cannot be undone.")) {
+        // Save current leaderboard before clearing
+        if (Object.keys(currentLeaderboard).length > 0) {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const backupFileName = `leaderboard_backup_${timestamp}.json`;
+          
+          const backupData = {
+            name: `${currentLeaderboardName} (Backup)`,
+            data: currentLeaderboard,
+            timestamp: new Date().toISOString()
+          };
+          
+          localStorage.setItem(backupFileName, JSON.stringify(backupData));
+          updateLeaderboardFiles();
+        }
+        
+        // Clear the leaderboard
+        currentLeaderboard = {};
+        currentLeaderboardName = "New Leaderboard";
+        updateLeaderboardInfo();
+        displayLeaderboard();
+        
+        showInfo("Leaderboard cleared successfully. A backup has been saved.");
+      }
+    }
+    
+    // Start a new leaderboard
+    function startNewLeaderboard() {
+      if (Object.keys(currentLeaderboard).length > 0) {
+        if (!confirm("Starting a new leaderboard will clear the current one. Continue?")) {
+          return;
+        }
+      }
+      
+      initializeLeaderboard();
+      showInfo("New leaderboard started.");
+    }
+    
+    // Show error message
+    function showError(message) {
+      const errorDiv = document.getElementById("errorMessage");
+      errorDiv.textContent = message;
+      errorDiv.style.display = "block";
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        errorDiv.style.display = "none";
+      }, 5000);
+    }
+    
+    // Show info message
+    function showInfo(message) {
+      // Create a temporary info message
+      const infoDiv = document.createElement("div");
+      infoDiv.className = "info";
+      infoDiv.textContent = message;
+      
+      const leaderboardSection = document.querySelector(".leaderboard-section");
+      leaderboardSection.insertBefore(infoDiv, leaderboardSection.firstChild);
+      
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        if (infoDiv.parentNode) {
+          infoDiv.parentNode.removeChild(infoDiv);
+        }
+      }, 5000);
+    }
+    
+    // Initialize the page
+    function initializePage() {
+      generatePlayerInputs();
+      initializeLeaderboard();
+    }
+    
+    // Rest of the existing functions (generatePlayerInputs, calculateSettlements, etc.)
+    // ... (all the existing functions remain the same)
+    
+    function generatePlayerInputs() {
+      const numPlayers = document.getElementById("numPlayers").value;
+      const playerInputs = document.getElementById("playerInputs");
+      playerInputs.innerHTML = "";
+
+      for (let i = 0; i < numPlayers; i++) {
+        playerInputs.innerHTML += `
+          <div class="input-group">
+            <label for="player${i + 1}Name">Player ${i + 1} Name:</label>
+            <input type="text" id="player${i + 1}Name" placeholder="Enter name">
+          </div>
+          <div class="input-group">
+            <label for="player${i + 1}BuyIn">Player ${i + 1} Buy-In:</label>
+            <input type="number" id="player${i + 1}BuyIn" placeholder="Enter buy-in">
+          </div>
+          <div class="input-group">
+            <label for="player${i + 1}Balance">Player ${i + 1} Final Balance:</label>
+            <input type="number" id="player${i + 1}Balance" placeholder="Enter final balance">
+          </div>
+        `;
+      }
+    }
+
+    function calculateSettlements() {
+      const numPlayers = document.getElementById("numPlayers").value;
+      playersData = [];
+      const buyIns = [];
+      const finalBalances = [];
+
+      // Collect player data
+      for (let i = 0; i < numPlayers; i++) {
+        const name = document.getElementById(`player${i + 1}Name`).value || `Player ${i + 1}`;
+        const buyIn = parseFloat(document.getElementById(`player${i + 1}BuyIn`).value) || 0;
+        const finalBalance = parseFloat(document.getElementById(`player${i + 1}Balance`).value) || 0;
+
+        playersData.push({
+          name: name,
+          buyIn: buyIn,
+          balance: finalBalance,
+          adjustment: 0,
+          finalBalance: finalBalance
+        });
+        
+        buyIns.push(buyIn);
+        finalBalances.push(finalBalance);
+      }
+
+      // Calculate total buy-in and final balance
+      const totalBuyIn = buyIns.reduce((sum, val) => sum + val, 0);
+      const totalFinalBalance = finalBalances.reduce((sum, val) => sum + val, 0);
+      
+      // Calculate difference
+      difference = totalFinalBalance - totalBuyIn;
+      
+      // Hide results and error messages initially
+      document.getElementById("results").style.display = "none";
+      document.getElementById("errorMessage").style.display = "none";
+      
+      // If there's a difference, show adjustment options
+      if (Math.abs(difference) > 0.01) { // Using small epsilon for floating point comparison
+        document.getElementById("adjustmentSection").classList.remove("hidden");
+        
+        // Show difference information
+        const differenceInfo = document.getElementById("differenceInfo");
+        if (difference > 0) {
+          differenceInfo.innerHTML = `Total balance is <span class="positive">${Math.round(difference)}</span> more than total buy-in. This amount needs to be subtracted from players.`;
+        } else {
+          differenceInfo.innerHTML = `Total balance is <span class="negative">${Math.round(Math.abs(difference))}</span> less than total buy-in. This amount needs to be added to players.`;
+        }
+        
+        // Populate player selection dropdowns
+        populatePlayerSelection();
+      } else {
+        document.getElementById("adjustmentSection").classList.add("hidden");
+        adjustmentMethod = "none";
+        selectedPlayersForAdjustment = [];
+        // No adjustment needed, proceed with calculation
+        calculateWithAdjustments();
+      }
+    }
+    
+    function populatePlayerSelection() {
+      const singlePlayerSelect = document.getElementById("singlePlayerSelect");
+      const multiplePlayersCheckboxes = document.getElementById("multiplePlayersCheckboxes");
+      
+      // Clear previous options
+      singlePlayerSelect.innerHTML = "";
+      multiplePlayersCheckboxes.innerHTML = "";
+      
+      // Add options for each player
+      playersData.forEach((player, index) => {
+        // For single player dropdown
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = player.name;
+        singlePlayerSelect.appendChild(option);
+        
+        // For multiple players checkboxes
+        const checkboxDiv = document.createElement("div");
+        checkboxDiv.innerHTML = `
+          <input type="checkbox" id="player${index}" name="adjustPlayers" value="${index}" checked>
+          <label for="player${index}">${player.name}</label>
+        `;
+        multiplePlayersCheckboxes.appendChild(checkboxDiv);
+      });
+    }
+    
+    // Show/hide options based on radio selection
+    document.getElementById('adjustSingle').addEventListener('change', function() {
+      document.getElementById('singlePlayerOption').classList.toggle('hidden', !this.checked);
+    });
+    
+    document.getElementById('adjustMultiple').addEventListener('change', function() {
+      document.getElementById('multiplePlayersOption').classList.toggle('hidden', !this.checked);
+    });
+    
+    document.getElementById('adjustAll').addEventListener('change', function() {
+      document.getElementById('singlePlayerOption').classList.add('hidden');
+      document.getElementById('multiplePlayersOption').classList.add('hidden');
+    });
+    
+    function applyAdjustment() {
+      const adjustmentOption = document.querySelector('input[name="adjustmentOption"]:checked').value;
+      adjustmentMethod = adjustmentOption;
+      selectedPlayersForAdjustment = [];
+      
+      // Determine which players to adjust based on the selected option
+      if (adjustmentOption === 'all') {
+        // All players
+        selectedPlayersForAdjustment = playersData.map((_, index) => index);
+      } else if (adjustmentOption === 'single') {
+        // Single player
+        const selectedIndex = parseInt(document.getElementById('singlePlayerSelect').value);
+        selectedPlayersForAdjustment = [selectedIndex];
+      } else if (adjustmentOption === 'multiple') {
+        // Multiple players
+        const checkboxes = document.querySelectorAll('input[name="adjustPlayers"]:checked');
+        selectedPlayersForAdjustment = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        
+        // If no players selected, show error
+        if (selectedPlayersForAdjustment.length === 0) {
+          document.getElementById("errorMessage").innerText = "Please select at least one player for adjustment.";
+          document.getElementById("errorMessage").style.display = "block";
+          return;
+        }
+      }
+      
+      // Apply the adjustment
+      const adjustmentPerPlayer = difference / selectedPlayersForAdjustment.length;
+      
+      // Reset adjustments
+      playersData.forEach(player => {
+        player.adjustment = 0;
+        player.finalBalance = player.balance;
+      });
+      
+      // Apply adjustments to selected players
+      selectedPlayersForAdjustment.forEach(index => {
+        playersData[index].adjustment = -adjustmentPerPlayer; // Negative because we're correcting the difference
+        playersData[index].finalBalance = playersData[index].balance + playersData[index].adjustment;
+      });
+      
+      // Proceed with calculation
+      calculateWithAdjustments();
+    }
+    
+    function calculateWithAdjustments() {
+      // Hide adjustment section
+      document.getElementById("adjustmentSection").classList.add("hidden");
+      
+      // Display player summary
+      displayPlayerSummary();
+      
+      // Calculate net gains/losses with adjustments
+      const netGains = playersData.map(player => player.finalBalance - player.buyIn);
+      
+      // Separate players who owe and are owed
+      const oweMoney = [];
+      const owedMoney = [];
+
+      for (let i = 0; i < playersData.length; i++) {
+        if (netGains[i] < 0) {
+          oweMoney.push({ name: playersData[i].name, amount: Math.abs(netGains[i]) });
+        } else if (netGains[i] > 0) {
+          owedMoney.push({ name: playersData[i].name, amount: netGains[i] });
+        }
+      }
+
+      // Sort for efficient settlement
+      oweMoney.sort((a, b) => a.amount - b.amount);
+      owedMoney.sort((a, b) => b.amount - a.amount);
+
+      // Settle balances
+      const settlements = [];
+
+      for (let owe of oweMoney) {
+        let oweName = owe.name;
+        let oweAmount = owe.amount;
+
+        for (let owed of owedMoney) {
+          if (owed.amount === 0) continue;
+
+          if (oweAmount <= owed.amount) {
+            settlements.push(`${oweName} pays ${owed.name} ${Math.round(oweAmount)}`);
+            owed.amount -= oweAmount;
+            oweAmount = 0;
+            break;
+          } else {
+            settlements.push(`${oweName} pays ${owed.name} ${Math.round(owed.amount)}`);
+            oweAmount -= owed.amount;
+            owed.amount = 0;
+          }
+        }
+      }
+
+      // Display results
+      const resultsDiv = document.getElementById("results");
+      const settlementList = document.getElementById("settlementList");
+      settlementList.innerHTML = "";
+
+      if (settlements.length === 0) {
+        settlementList.innerHTML = "<li>No settlements needed. All balances are even.</li>";
+      } else {
+        settlements.forEach((settlement) => {
+          const li = document.createElement("li");
+          li.textContent = settlement;
+          settlementList.appendChild(li);
+        });
+      }
+
+      resultsDiv.style.display = "block";
+    }
+    
+    function displayPlayerSummary() {
+      const tableBody = document.getElementById("playerSummaryBody");
+      const tableFoot = document.getElementById("playerSummaryFoot");
+      const actionInfo = document.getElementById("actionInfo");
+      tableBody.innerHTML = "";
+      
+      // Calculate totals
+      let totalBuyIn = 0;
+      let totalBalance = 0;
+      let totalAdjustment = 0;
+      let totalFinalBalance = 0;
+      
+      // Find biggest winner and loser
+      let maxGain = -Infinity;
+      let maxLoss = Infinity;
+      let biggestWinner = null;
+      let biggestLoser = null;
+      
+      playersData.forEach(player => {
+        const netGainLoss = player.finalBalance - player.buyIn;
+        
+        if (netGainLoss > maxGain) {
+          maxGain = netGainLoss;
+          biggestWinner = player.name;
+        }
+        
+        if (netGainLoss < maxLoss) {
+          maxLoss = netGainLoss;
+          biggestLoser = player.name;
+        }
+        
+        totalBuyIn += player.buyIn;
+        totalBalance += player.balance;
+        totalAdjustment += player.adjustment;
+        totalFinalBalance += player.finalBalance;
+      });
+      
+      // Add player rows
+      playersData.forEach(player => {
+        const netGainLoss = player.finalBalance - player.buyIn;
+        const row = document.createElement("tr");
+        
+        // Add emojis for biggest winner and loser
+        let nameWithEmoji = player.name;
+        if (player.name === biggestWinner && netGainLoss > 0) {
+          nameWithEmoji += " 🤑";
+        } else if (player.name === biggestLoser && netGainLoss < 0) {
+          nameWithEmoji += " 🤕";
+        }
+        
+        row.innerHTML = `
+          <td>${nameWithEmoji}</td>
+          <td>${Math.round(player.buyIn)}</td>
+          <td>${Math.round(player.balance)}</td>
+          <td class="${player.adjustment > 0 ? 'positive' : player.adjustment < 0 ? 'negative' : ''}">
+            ${player.adjustment !== 0 ? (player.adjustment > 0 ? '+' : '') + Math.round(player.adjustment) : '0'}
+          </td>
+          <td>${Math.round(player.finalBalance)}</td>
+          <td class="${netGainLoss > 0 ? 'positive' : netGainLoss < 0 ? 'negative' : ''}">
+            ${netGainLoss > 0 ? '+' : ''}${Math.round(netGainLoss)}
+          </td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+      
+      // Add totals row
+      const totalsRow = document.createElement("tr");
+      totalsRow.className = "total-row";
+      totalsRow.innerHTML = `
+        <td>Totals</td>
+        <td>${Math.round(totalBuyIn)}</td>
+        <td>${Math.round(totalBalance)}</td>
+        <td class="${totalAdjustment > 0 ? 'positive' : totalAdjustment < 0 ? 'negative' : ''}">
+          ${totalAdjustment !== 0 ? (totalAdjustment > 0 ? '+' : '') + Math.round(totalAdjustment) : '0'}
+        </td>
+        <td>${Math.round(totalFinalBalance)}</td>
+        <td>0</td>
+      `;
+      
+      tableFoot.innerHTML = "";
+      tableFoot.appendChild(totalsRow);
+      
+      // Show action info
+      if (Math.abs(difference) > 0.01) {
+        let actionText = "";
+        const absDifference = Math.abs(difference);
+        
+        if (adjustmentMethod === "all") {
+          if (difference > 0) {
+            actionText = `${Math.round(absDifference)} was subtracted evenly across all players.`;
+          } else {
+            actionText = `${Math.round(absDifference)} was added evenly across all players.`;
+          }
+        } else if (adjustmentMethod === "single") {
+          const playerName = playersData[selectedPlayersForAdjustment[0]].name;
+          if (difference > 0) {
+            actionText = `${Math.round(absDifference)} was subtracted from ${playerName}.`;
+          } else {
+            actionText = `${Math.round(absDifference)} was added to ${playerName}.`;
+          }
+        } else if (adjustmentMethod === "multiple") {
+          const playerNames = selectedPlayersForAdjustment.map(index => playersData[index].name).join(", ");
+          if (difference > 0) {
+            actionText = `${Math.round(absDifference)} was subtracted evenly from ${playerNames}.`;
+          } else {
+            actionText = `${Math.round(absDifference)} was added evenly to ${playerNames}.`;
+          }
+        } else {
+          if (difference > 0) {
+            actionText = `Total balance was ${Math.round(absDifference)} more than total buy-in. No adjustment was needed.`;
+          } else {
+            actionText = `Total balance was ${Math.round(absDifference)} less than total buy-in. No adjustment was needed.`;
+          }
+        }
+        
+        // Add note about incorrect calculation
+        actionText += " Adjustment was made due to incorrect calculation of final balances.";
+        
+        actionInfo.innerHTML = actionText;
+        actionInfo.style.display = "block";
+      } else {
+        actionInfo.style.display = "none";
+      }
+    }
+    
+    function exportPDF() {
+      // Show loading indicator
+      const originalText = document.querySelector('.export-btn').textContent;
+      document.querySelector('.export-btn').textContent = 'Generating PDF...';
+      
+      // Create a new PDF document with A4 size
+      const doc = new jsPDF('p', 'mm', 'a4');
+      
+      // Set margins
+      const margin = 15;
+      let yPosition = margin;
+      
+      // Add title
+      doc.setFontSize(18);
+      doc.setTextColor(40, 40, 40);
+      doc.setFont(undefined, 'bold');
+      doc.text("Poker Payouts Summary", 105, yPosition, { align: "center" });
+      yPosition += 12;
+      
+      // Add date with day name
+      const now = new Date();
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const dateStr = `${dayNames[now.getDay()]}, ${monthNames[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.setFont(undefined, 'normal');
+      doc.text(dateStr, 105, yPosition, { align: "center" });
+      yPosition += 10;
+      
+      // Add action info if exists
+      const actionInfo = document.getElementById("actionInfo");
+      
+      if (actionInfo.style.display !== 'none') {
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        // Split text into multiple lines to prevent overflow
+        const splitText = doc.splitTextToSize(actionInfo.textContent, 170);
+        doc.text(splitText, margin, yPosition);
+        yPosition += splitText.length * 5 + 10;
+      }
+      
+      // Add player summary table
+      doc.setFontSize(12);
+      doc.setTextColor(40, 40, 40);
+      doc.setFont(undefined, 'bold');
+      doc.text("Player Summary", margin, yPosition);
+      yPosition += 8;
+      
+      // Prepare table data
+      const tableData = playersData.map(player => {
+        const netGainLoss = player.finalBalance - player.buyIn;
+        return [
+          player.name,
+          Math.round(player.buyIn),
+          Math.round(player.balance),
+          player.adjustment !== 0 ? (player.adjustment > 0 ? '+' : '') + Math.round(player.adjustment) : '0',
+          Math.round(player.finalBalance),
+          (netGainLoss > 0 ? '+' : '') + Math.round(netGainLoss)
+        ];
+      });
+      
+      // Add totals row
+      const totalBuyIn = playersData.reduce((sum, player) => sum + player.buyIn, 0);
+      const totalBalance = playersData.reduce((sum, player) => sum + player.balance, 0);
+      const totalAdjustment = playersData.reduce((sum, player) => sum + player.adjustment, 0);
+      const totalFinalBalance = playersData.reduce((sum, player) => sum + player.finalBalance, 0);
+      
+      tableData.push([
+        "TOTALS",
+        Math.round(totalBuyIn),
+        Math.round(totalBalance),
+        totalAdjustment !== 0 ? (totalAdjustment > 0 ? '+' : '') + Math.round(totalAdjustment) : '0',
+        Math.round(totalFinalBalance),
+        "0"
+      ]);
+      
+      // Create the table
+      doc.autoTable({
+        startY: yPosition,
+        head: [['Player', 'Buy-In', 'Balance', 'Adjustment', 'Final', 'Net']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [66, 139, 202],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 10,
+          halign: 'center',
+          valign: 'middle'
+        },
+        bodyStyles: {
+          fontSize: 10,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          halign: 'center',
+          valign: 'middle'
+        },
+        styles: {
+          cellPadding: 3,
+          fontSize: 10,
+          valign: 'middle',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { cellWidth: 40, halign: 'left' },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 25 },
+          4: { cellWidth: 25 },
+          5: { cellWidth: 20 }
+        },
+        margin: { top: yPosition },
+        didDrawPage: function(data) {
+          // Add footer to each page
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`Generated on ${dateStr}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
+        }
+      });
+      
+      // Get the Y position after the table
+      let finalY = doc.lastAutoTable.finalY + 10;
+      
+      // Add settlements section if there are any
+      const settlementList = document.getElementById("settlementList");
+      if (settlementList.children.length > 0 && settlementList.children[0].textContent !== "No settlements needed. All balances are even.") {
+        doc.setFontSize(12);
+        doc.setTextColor(40, 40, 40);
+        doc.setFont(undefined, 'bold');
+        doc.text("Settlements", margin, finalY);
+        finalY += 8;
+        
+        // Add each settlement
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        Array.from(settlementList.children).forEach(item => {
+          if (finalY > doc.internal.pageSize.height - 20) {
+            doc.addPage();
+            finalY = margin;
+          }
+          doc.text(`• ${item.textContent}`, margin + 5, finalY);
+          finalY += 5;
+        });
+      }
+      
+      // Generate filename with current date
+      const fileName = `${monthNames[now.getMonth()]}_${now.getDate()}_${now.getFullYear()}_Poker_Payouts.pdf`;
+      
+      // Save the PDF
+      doc.save(fileName);
+      
+      // Restore button text
+      document.querySelector('.export-btn').textContent = originalText;
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+      const button = document.querySelector(".dark-mode-toggle");
+      if (document.body.classList.contains("dark-mode")) {
+        button.textContent = "☀️ Light Mode";
+      } else {
+        button.textContent = "🌙 Dark Mode";
+      }
+    }
+    
+    // Initialize the page when it loads
+    window.onload = initializePage;
+  </script>
+</body>
+</html>
