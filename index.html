@@ -309,6 +309,12 @@
     .undo-btn:hover {
       background-color: #5a6268;
     }
+    .delete-btn {
+      background-color: #dc3545;
+    }
+    .delete-btn:hover {
+      background-color: #c82333;
+    }
     .leaderboard-select {
       width: 100%;
       padding: 10px;
@@ -355,6 +361,26 @@
       background-color: #555;
       border-color: #666;
       color: #f4f4f9;
+    }
+    /* Position indicator styles */
+    .position-up {
+      color: #28a745;
+      font-weight: bold;
+    }
+    .position-down {
+      color: #dc3545;
+      font-weight: bold;
+    }
+    .position-same {
+      color: #6c757d;
+      font-weight: bold;
+    }
+    .first-place {
+      background-color: #fff3cd !important;
+      font-weight: bold;
+    }
+    .dark-mode .first-place {
+      background-color: #856404 !important;
     }
     /* Mobile-specific styles */
     @media (max-width: 768px) {
@@ -483,7 +509,7 @@
       
       <div class="action-info" id="actionInfo"></div>
       
-      <button class="export-btn" onclick="exportPDF()">Export as PDF</button>
+      <button class="export-btn" onclick="exportPDF()">Export Game as PDF</button>
       
       <h2>Settlements:</h2>
       <ul id="settlementList"></ul>
@@ -502,6 +528,8 @@
           <button class="undo-btn" onclick="undoLastSave()">Undo Last Save</button>
           <button class="clear-btn" onclick="clearLeaderboard()">Clear Leaderboard</button>
           <button class="new-btn" onclick="startNewLeaderboard()">Start New Leaderboard</button>
+          <button class="delete-btn" onclick="deleteCurrentLeaderboard()">Delete This Leaderboard</button>
+          <button class="export-btn" onclick="exportLeaderboardPDF()">Export Leaderboard as PDF</button>
         </div>
         
         <div class="scrollable-container">
@@ -513,6 +541,7 @@
                 <th>Total Winnings</th>
                 <th>Games Played</th>
                 <th>Average Win/Loss</th>
+                <th>Position Change</th>
               </tr>
             </thead>
             <tbody id="leaderboardBody"></tbody>
@@ -541,7 +570,8 @@
       players: {},
       lastUpdated: null,
       created: new Date().toISOString(),
-      history: [] // For undo functionality
+      history: [], // For undo functionality
+      previousPlayerRanks: {} // Track previous positions for position change indicators
     };
     
     let leaderboardFiles = [];
@@ -627,6 +657,14 @@
       
       return filesToDelete.length;
     }
+
+    // Get normalized player name (for case-insensitive matching)
+    function getNormalizedPlayerName(name) {
+      // Find existing player name with case-insensitive matching
+      const existingPlayers = Object.keys(currentLeaderboard.players);
+      const existingPlayer = existingPlayers.find(player => namesAreEqual(player, name));
+      return existingPlayer || name;
+    }
     
     // Initialize the leaderboard
     function initializeLeaderboard() {
@@ -635,7 +673,8 @@
         players: {},
         lastUpdated: null,
         created: new Date().toISOString(),
-        history: []
+        history: [],
+        previousPlayerRanks: {}
       };
       updateLeaderboardInfo();
       displayLeaderboard();
@@ -659,7 +698,7 @@
       document.getElementById("currentLeaderboardNameInput").value = currentLeaderboard.name;
     }
     
-    // Display the leaderboard
+    // Display the leaderboard with position indicators
     function displayLeaderboard() {
       const leaderboardBody = document.getElementById("leaderboardBody");
       leaderboardBody.innerHTML = "";
@@ -670,15 +709,47 @@
           name,
           totalWinnings: data.totalWinnings || 0,
           gamesPlayed: data.gamesPlayed || 0,
-          average: data.gamesPlayed ? (data.totalWinnings / data.gamesPlayed) : 0
+          average: data.gamesPlayed ? (data.totalWinnings / data.gamesPlayed) : 0,
+          lastPlayed: data.lastPlayed
         }))
         .sort((a, b) => b.totalWinnings - a.totalWinnings);
+      
+      // Calculate current ranks
+      const currentRanks = {};
+      leaderboardArray.forEach((player, index) => {
+        currentRanks[player.name] = index + 1;
+      });
       
       // Add rows to the leaderboard table
       leaderboardArray.forEach((player, index) => {
         const row = document.createElement("tr");
+        if (index === 0) {
+          row.className = "first-place";
+        }
+        
+        // Calculate position change
+        const previousRank = currentLeaderboard.previousPlayerRanks[player.name];
+        let positionIndicator = "";
+        
+        if (previousRank !== undefined) {
+          if (currentRanks[player.name] < previousRank) {
+            // Moved up
+            positionIndicator = `<span class="position-up">↑ ${previousRank - currentRanks[player.name]}</span>`;
+          } else if (currentRanks[player.name] > previousRank) {
+            // Moved down
+            positionIndicator = `<span class="position-down">↓ ${currentRanks[player.name] - previousRank}</span>`;
+          } else {
+            // Same position
+            positionIndicator = `<span class="position-same">→</span>`;
+          }
+        }
+        // If no previous rank (new player), position indicator remains empty
+        
+        // Add star for first place
+        const rankDisplay = index === 0 ? `🥇 ${index + 1}` : index + 1;
+        
         row.innerHTML = `
-          <td>${index + 1}</td>
+          <td>${rankDisplay}</td>
           <td>${player.name}</td>
           <td class="${player.totalWinnings >= 0 ? 'positive' : 'negative'}">
             ${player.totalWinnings >= 0 ? '+' : ''}${Math.round(player.totalWinnings)}
@@ -687,6 +758,7 @@
           <td class="${player.average >= 0 ? 'positive' : 'negative'}">
             ${player.average >= 0 ? '+' : ''}${Math.round(player.average)}
           </td>
+          <td>${positionIndicator}</td>
         `;
         leaderboardBody.appendChild(row);
       });
@@ -694,7 +766,7 @@
       // If leaderboard is empty, show a message
       if (leaderboardArray.length === 0) {
         const row = document.createElement("tr");
-        row.innerHTML = `<td colspan="5" style="text-align: center;">No data in leaderboard</td>`;
+        row.innerHTML = `<td colspan="6" style="text-align: center;">No data in leaderboard</td>`;
         leaderboardBody.appendChild(row);
       }
     }
@@ -714,12 +786,28 @@
       }
       
       // Save current state for undo functionality
-      currentLeaderboard.history.push(JSON.parse(JSON.stringify(currentLeaderboard.players)));
+      currentLeaderboard.history.push({
+        players: JSON.parse(JSON.stringify(currentLeaderboard.players)),
+        previousPlayerRanks: JSON.parse(JSON.stringify(currentLeaderboard.previousPlayerRanks))
+      });
       
       // Keep only last 10 history entries
       if (currentLeaderboard.history.length > 10) {
         currentLeaderboard.history.shift();
       }
+      
+      // Save current ranks as previous ranks for position tracking
+      const currentLeaderboardArray = Object.entries(currentLeaderboard.players)
+        .map(([name, data]) => ({
+          name,
+          totalWinnings: data.totalWinnings || 0
+        }))
+        .sort((a, b) => b.totalWinnings - a.totalWinnings);
+      
+      currentLeaderboard.previousPlayerRanks = {};
+      currentLeaderboardArray.forEach((player, index) => {
+        currentLeaderboard.previousPlayerRanks[player.name] = index + 1;
+      });
       
       // Check if name changed (case insensitive)
       const nameChanged = !namesAreEqual(newName, currentLeaderboard.name);
@@ -735,13 +823,13 @@
         currentLeaderboard.name = newName;
       }
       
-      // Update leaderboard with current game results
+      // Update leaderboard with current game results (case insensitive player names)
       playersData.forEach(player => {
         const netGainLoss = player.finalBalance - player.buyIn;
-        const playerName = player.name;
+        const normalizedPlayerName = getNormalizedPlayerName(player.name);
         
-        if (!currentLeaderboard.players[playerName]) {
-          currentLeaderboard.players[playerName] = {
+        if (!currentLeaderboard.players[normalizedPlayerName]) {
+          currentLeaderboard.players[normalizedPlayerName] = {
             totalWinnings: 0,
             gamesPlayed: 0,
             lastPlayed: null
@@ -749,9 +837,9 @@
         }
         
         // Accumulate winnings and increment games played
-        currentLeaderboard.players[playerName].totalWinnings += netGainLoss;
-        currentLeaderboard.players[playerName].gamesPlayed += 1;
-        currentLeaderboard.players[playerName].lastPlayed = new Date().toISOString();
+        currentLeaderboard.players[normalizedPlayerName].totalWinnings += netGainLoss;
+        currentLeaderboard.players[normalizedPlayerName].gamesPlayed += 1;
+        currentLeaderboard.players[normalizedPlayerName].lastPlayed = new Date().toISOString();
       });
       
       // Update timestamp
@@ -781,7 +869,9 @@
       
       if (confirm("Are you sure you want to undo the last save? This will revert the leaderboard to its previous state.")) {
         // Restore previous state
-        currentLeaderboard.players = currentLeaderboard.history.pop();
+        const previousState = currentLeaderboard.history.pop();
+        currentLeaderboard.players = previousState.players;
+        currentLeaderboard.previousPlayerRanks = previousState.previousPlayerRanks;
         
         // Update timestamp
         currentLeaderboard.lastUpdated = new Date().toISOString();
@@ -931,6 +1021,32 @@
       }
     }
     
+    // Delete the currently loaded leaderboard
+    function deleteCurrentLeaderboard() {
+      if (!currentLeaderboard.name || currentLeaderboard.name === "New Leaderboard") {
+        showError("Cannot delete a new/unnamed leaderboard.");
+        return;
+      }
+      
+      if (confirm(`Are you sure you want to permanently delete the leaderboard "${currentLeaderboard.name}"? This action cannot be undone.`)) {
+        // Find and delete the current leaderboard file
+        const currentFile = leaderboardFiles.find(file => 
+          namesAreEqual(file.name, currentLeaderboard.name)
+        );
+        
+        if (currentFile) {
+          deleteLeaderboardData(currentFile.fileName);
+          leaderboardFiles = leaderboardFiles.filter(file => file.fileName !== currentFile.fileName);
+          saveStorage();
+        }
+        
+        // Initialize a new leaderboard
+        initializeLeaderboard();
+        
+        showInfo(`Leaderboard "${currentLeaderboard.name}" has been deleted.`);
+      }
+    }
+    
     // Clear the current leaderboard
     function clearLeaderboard() {
       if (Object.keys(currentLeaderboard.players).length === 0) {
@@ -959,7 +1075,8 @@
           players: {},
           lastUpdated: new Date().toISOString(),
           created: currentLeaderboard.created,
-          history: []
+          history: [],
+          previousPlayerRanks: {}
         };
         
         updateLeaderboardInfo();
@@ -1014,13 +1131,135 @@
         players: {},
         lastUpdated: null,
         created: new Date().toISOString(),
-        history: []
+        history: [],
+        previousPlayerRanks: {}
       };
       
       updateLeaderboardInfo();
       updateLeaderboardNameInput();
       displayLeaderboard();
       showInfo(`New leaderboard "${newName}" started.`);
+    }
+    
+    // Export leaderboard to PDF
+    function exportLeaderboardPDF() {
+      // Show loading indicator
+      const originalText = document.querySelectorAll('.export-btn')[1].textContent;
+      document.querySelectorAll('.export-btn')[1].textContent = 'Generating PDF...';
+      
+      // Create a new PDF document with A4 size
+      const doc = new jsPDF('p', 'mm', 'a4');
+      
+      // Set margins
+      const margin = 15;
+      let yPosition = margin;
+      
+      // Add title
+      doc.setFontSize(18);
+      doc.setTextColor(40, 40, 40);
+      doc.setFont(undefined, 'bold');
+      doc.text(`Leaderboard: ${currentLeaderboard.name}`, 105, yPosition, { align: "center" });
+      yPosition += 12;
+      
+      // Add date with day name
+      const now = new Date();
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const dateStr = `${dayNames[now.getDay()]}, ${monthNames[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Generated on ${dateStr}`, 105, yPosition, { align: "center" });
+      yPosition += 10;
+      
+      // Add leaderboard info
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      const created = currentLeaderboard.created ? 
+        new Date(currentLeaderboard.created).toLocaleDateString() : "Unknown";
+      const lastUpdated = currentLeaderboard.lastUpdated ? 
+        new Date(currentLeaderboard.lastUpdated).toLocaleDateString() : "Never";
+      
+      doc.text(`Created: ${created} | Last Updated: ${lastUpdated}`, margin, yPosition);
+      yPosition += 8;
+      
+      // Add leaderboard table
+      doc.setFontSize(12);
+      doc.setTextColor(40, 40, 40);
+      doc.setFont(undefined, 'bold');
+      
+      // Prepare table data
+      const leaderboardArray = Object.entries(currentLeaderboard.players)
+        .map(([name, data]) => ({
+          name,
+          totalWinnings: data.totalWinnings || 0,
+          gamesPlayed: data.gamesPlayed || 0,
+          average: data.gamesPlayed ? (data.totalWinnings / data.gamesPlayed) : 0
+        }))
+        .sort((a, b) => b.totalWinnings - a.totalWinnings);
+      
+      const tableData = leaderboardArray.map((player, index) => [
+        index + 1,
+        player.name,
+        `${player.totalWinnings >= 0 ? '+' : ''}${Math.round(player.totalWinnings)}`,
+        player.gamesPlayed,
+        `${player.average >= 0 ? '+' : ''}${Math.round(player.average)}`
+      ]);
+      
+      // Create the table
+      doc.autoTable({
+        startY: yPosition,
+        head: [['Rank', 'Player Name', 'Total Winnings', 'Games Played', 'Average']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [66, 139, 202],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 10,
+          halign: 'center',
+          valign: 'middle'
+        },
+        bodyStyles: {
+          fontSize: 10,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          halign: 'center',
+          valign: 'middle'
+        },
+        styles: {
+          cellPadding: 3,
+          fontSize: 10,
+          valign: 'middle',
+          halign: 'center'
+        },
+        columnStyles: {
+          0: { cellWidth: 20 },
+          1: { cellWidth: 50, halign: 'left' },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 25 },
+          4: { cellWidth: 25 }
+        },
+        margin: { top: yPosition },
+        didDrawPage: function(data) {
+          // Add footer to each page
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`Generated by Lokal Seenz Poker Payouts`, data.settings.margin.left, doc.internal.pageSize.height - 10);
+        }
+      });
+      
+      // Generate filename with current date
+      const fileName = `${currentLeaderboard.name.replace(/[^a-zA-Z0-9]/g, '_')}_Leaderboard_${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}.pdf`;
+      
+      // Save the PDF
+      doc.save(fileName);
+      
+      // Restore button text
+      document.querySelectorAll('.export-btn')[1].textContent = originalText;
     }
     
     // Show error message
@@ -1446,8 +1685,8 @@
     
     function exportPDF() {
       // Show loading indicator
-      const originalText = document.querySelector('.export-btn').textContent;
-      document.querySelector('.export-btn').textContent = 'Generating PDF...';
+      const originalText = document.querySelectorAll('.export-btn')[0].textContent;
+      document.querySelectorAll('.export-btn')[0].textContent = 'Generating PDF...';
       
       // Create a new PDF document with A4 size
       const doc = new jsPDF('p', 'mm', 'a4');
@@ -1600,7 +1839,7 @@
       doc.save(fileName);
       
       // Restore button text
-      document.querySelector('.export-btn').textContent = originalText;
+      document.querySelectorAll('.export-btn')[0].textContent = originalText;
     }
 
     function toggleDarkMode() {
